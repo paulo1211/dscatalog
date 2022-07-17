@@ -1,7 +1,10 @@
 package me.gnomeshell.dscatalog.services;
 
+import me.gnomeshell.dscatalog.dto.CategoryDTO;
 import me.gnomeshell.dscatalog.dto.ProductDTO;
+import me.gnomeshell.dscatalog.entities.Category;
 import me.gnomeshell.dscatalog.entities.Product;
+import me.gnomeshell.dscatalog.repositories.CategoryRepository;
 import me.gnomeshell.dscatalog.repositories.ProductRepository;
 import me.gnomeshell.dscatalog.services.exceptions.DatabaseException;
 import me.gnomeshell.dscatalog.services.exceptions.ResourceNotFoundException;
@@ -22,6 +25,10 @@ public class ProductService {
     @Autowired
     private ProductRepository repository;
 
+
+    @Autowired
+    private CategoryRepository categoryRepository;
+
     // garante a integridade da transação e não deixa lockar o banco e melhorar a performance
 
     @Transactional(readOnly = true)
@@ -40,7 +47,7 @@ public class ProductService {
     @Transactional
     public ProductDTO insert(ProductDTO categoryDTO) {
         Product entity = new Product();
-       // entity.setName(categoryDTO.getName());
+        copyDtoToEntity(categoryDTO, entity);
         entity = repository.save(entity);
         return new ProductDTO(entity);
     }
@@ -49,7 +56,7 @@ public class ProductService {
     public ProductDTO update(Long id, ProductDTO categoryDTO) {
        try {
            Product entity = repository.getById(id);
-          // entity.setName(categoryDTO.getName());
+           copyDtoToEntity(categoryDTO, entity);
            entity = repository.save(entity);
            return new ProductDTO(entity);
        } catch (EntityNotFoundException e){
@@ -66,9 +73,20 @@ public class ProductService {
         } catch (DataIntegrityViolationException e){
             throw new DatabaseException("Integrity Violation");
         }
-
-
     }
 
+    public void copyDtoToEntity(ProductDTO productDTO, Product entity){
+        entity.setName(productDTO.getName());
+        entity.setDescription(productDTO.getDescription());
+        entity.setDate(productDTO.getDate());
+        entity.setImgUrl(productDTO.getImgUrl());
+        entity.setPrice(productDTO.getPrice());
 
+        entity.getCategories().clear();
+        for (CategoryDTO catDto: productDTO.getCategories()) {
+            Category category = categoryRepository.getOne(catDto.getId());
+            entity.getCategories().add(category);
+        }
+
+    }
 }
